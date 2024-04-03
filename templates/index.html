@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-time Dashboard</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Custom styles for this template */
+        body {
+            font-size: 0.875rem;
+        }
+
+        .main {
+            margin-left: 200px; /* Adjusted to accommodate the sidebar width */
+            padding: 20px; /* Added padding to the main content */
+        }
+
+        .card {
+            width: 85%; /* Ensure each card occupies the entire width */
+            margin-bottom: 10px; /* Add some spacing between tables */
+        }
+
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding: 48px 0 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+            width: 200px; /* Adjusted width */
+        }
+
+        .sidebar-sticky {
+            position: relative;
+            top: 0;
+            height: calc(100vh - 48px);
+            padding-top: .5rem;
+            overflow-x: hidden;
+            overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+        }
+
+        @supports ((position: -webkit-sticky) or (position: sticky)) {
+            .sidebar-sticky {
+                position: -webkit-sticky;
+                position: sticky;
+                padding-top: 1rem;
+                max-height: calc(100vh - 48px);
+            }
+        }
+
+        .sidebar .nav-link {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .sidebar .nav-link.active {
+            color: #007bff;
+        }
+
+        /* Additional styling */
+        .card-header {
+            background-color: #f7f7f7;
+        }
+
+        #chart-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 60vh; /* Full height of the viewport */
+        }
+
+        #system-metrics-chart {
+            max-width: 1000px; /* Adjust the maximum width as needed */
+            height: 80%; /* Allow the chart to scale proportionally */
+        }
+
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="sidebar-sticky">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    Data Parts
+                </h6>
+                <ul class="nav flex-column mb-2">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link " href="/file-system">File System Events</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/network-traffic">Network Traffic</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/security-events">Security Events</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/system-logs">System Logs</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <main class="col-md-9 ml-sm-auto col-lg-10 px-md-4 main">
+            <h1 class="mt-2">Real-time Data</h1>
+            <h2>{{ data['key'] }}</h2>
+            <div id="data-container" class="row">
+                <!-- Data will be loaded here -->
+            </div>
+            <div class="row justify-content-center mt-4">
+                <div id="chart-container">
+                    <canvas id="system-metrics-chart"></canvas>
+                </div>
+            </div>
+        </main>
+
+
+    </div>
+</div>
+<script>
+    const navLinks = document.querySelectorAll('.nav-link');
+    const dataContainer = document.getElementById('data-container'); // Corrected element ID
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', async function (event) {
+            event.preventDefault(); // Prevent default link behavior
+
+            // Remove 'active' class from all navigation links
+            navLinks.forEach(link => link.classList.remove('active'));
+
+            const url = this.href; // Get the URL from the clicked link
+            const response = await fetch(url); // Fetch content from the URL
+            const content = await response.text(); // Extract the content as text
+
+            dataContainer.innerHTML = content; // Update the content container
+            this.classList.add('active'); // Add active class to clicked link
+        });
+    });
+</script>
+
+<script>
+    // Function to create pie chart
+    function createPieChart(title, data) {
+        var ctx = document.getElementById('system-metrics-chart').getContext('2d');
+
+        // Destroy existing chart instance if it exists
+        if (window.myChart instanceof Chart) {
+            window.myChart.destroy();
+        }
+
+        window.myChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(data), // Use labels from the provided data
+                datasets: [{
+                    label: 'System Metrics',
+                    data: Object.values(data), // Use values from the provided data
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: title
+                    }
+                }
+            }
+        });
+    }
+
+
+    function createTable(title, data) {
+        let tableContent = '';
+
+        if (Object.keys(data).length > 0) {
+            tableContent += '<div class="card">' +
+                '<div class="card-header">' + title + '</div>' +
+                '<div class="card-body">' +
+                '<table class="table">' +
+                '<thead>' +
+                '<tr><th>Property</th><th>Value</th></tr>' +
+                '</thead>' +
+                '<tbody>';
+
+            for (const key in data) {
+                tableContent += '<tr><td>' + key + '</td><td>' + data[key] + '</td></tr>';
+            }
+
+            tableContent += '</tbody>' +
+                '</table>' +
+                '</div>' +
+                '</div>';
+        } else {
+            tableContent = '<div class="card">' +
+                '<div class="card-header">' + title + '</div>' +
+                '<div class="card-body">' +
+                '<p>No data available</p>' +
+                '</div>' +
+                '</div>';
+        }
+
+        return tableContent;
+    }
+
+    function updateData(filterKey) {
+        $.getJSON("/get_filtered_data", {key: filterKey}, function (data) {
+            if (data) {
+                console.log(data);
+                var content = "";
+                // Check if the filterKey exists in the data
+                if (filterKey in data) {
+                    var filterData = data[filterKey];
+                    for (var key in filterData) {
+                        if (key === "System Metrics") {
+                            content += createPieChart("System Metrics", filterData["System Metrics"]);
+                        } else {
+                            content += createTable(key, filterData[key]);
+                        }
+                    }
+                }
+                $('#data-container').html(content);
+            }
+        });
+    }
+
+
+    // Document ready function
+    $(document).ready(function () {
+        var key = "{{ data['key'] }}"; // Accessing the key value from the rendered template
+        updateData(key);
+        setInterval(function () {
+            updateData(key);
+        }, 5000); // Update data every 5 seconds
+    });
+
+</script>
+</body>
+</html>
