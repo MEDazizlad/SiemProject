@@ -1,3 +1,4 @@
 logs/system_logs/*.evtx
 network_traffic.etl
 .venv/*
+.idea/*
