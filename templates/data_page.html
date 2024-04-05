@@ -1,27 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Real-time Dashboard</title>
+    <link rel="icon" type="static/x-icon" href="/static/logo.ico">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <!-- Include the date adapter -->
+    <script
+            src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Custom styles for this template */
         body {
             font-size: 0.875rem;
         }
 
         .main {
-            margin-left: 200px; /* Adjusted to accommodate the sidebar width */
-            padding: 20px; /* Added padding to the main content */
+            margin-left: 200px;
+            padding: 20px;
         }
 
         .card {
-            width: 85%; /* Ensure each card occupies the entire width */
-            margin-bottom: 10px; /* Add some spacing between tables */
+            width: 85%;
+            margin-bottom: 10px;
         }
 
         .sidebar {
@@ -32,7 +33,7 @@
             z-index: 100;
             padding: 48px 0 0;
             box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
-            width: 200px; /* Adjusted width */
+            width: 200px;
         }
 
         .sidebar-sticky {
@@ -41,7 +42,7 @@
             height: calc(100vh - 48px);
             padding-top: .5rem;
             overflow-x: hidden;
-            overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+            overflow-y: auto;
         }
 
         @supports ((position: -webkit-sticky) or (position: sticky)) {
@@ -62,73 +63,100 @@
             color: #007bff;
         }
 
-        /* Additional styling */
         .card-header {
             background-color: #f7f7f7;
+            color: #333;
+            font-weight: bold;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
         }
 
         #chart-container {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 60vh; /* Full height of the viewport */
+            height: 60vh;
         }
 
         #chart {
-            max-width: 1000px; /* Adjust the maximum width as needed */
-            height: 80%; /* Allow the chart to scale proportionally */
+            max-width: 1000px;
+            height: 80%;
         }
 
-        /* Adjust padding and margin of table cells */
         table {
             border-collapse: collapse;
             width: 100%;
         }
 
-        th, td {
+        th,
+        td {
             padding: 5px;
             text-align: left;
         }
 
-        /* Reduce font size of table content */
-        .table td, .table th {
+        .table td,
+        .table th {
             font-size: 12px;
         }
 
-        /* Limit column width */
         .table td {
-            max-width: 150px; /* Adjust as needed */
+            max-width: 150px;
             overflow: hidden;
-            text-overflow: ellipsis; /* Truncate long text with ellipsis */
-            white-space: nowrap; /* Prevent text wrapping */
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
+        .pagination {
+            margin-top: 20px;
+            justify-content: center;
+        }
 
+        .page-item {
+            display: inline-block;
+            margin: 0 2px;
+        }
+
+        .page-link {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.25rem;
+            color: #007bff;
+            background-color: transparent;
+            border: 1px solid #007bff;
+        }
+
+        .page-link:hover {
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .page-item.active .page-link {
+            background-color: #007bff;
+            color: #fff;
+            border-color: #007bff;
+        }
     </style>
 </head>
+
 <body>
 <div class="container-fluid">
     <div class="row">
         <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
             <div class="sidebar-sticky">
-                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                <h6
+                        class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
                     Data Parts
                 </h6>
                 <ul class="nav flex-column mb-2">
                     <li class="nav-item">
                         <a class="nav-link active" href="/">Home</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link " href="/file-system">File System Events</a>
-                    </li>
+
                     <li class="nav-item">
                         <a class="nav-link" href="/network-traffic">Network Traffic</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/security-events">Security Events</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/system-logs">System Logs</a>
                     </li>
                 </ul>
             </div>
@@ -137,9 +165,7 @@
             <h1 class="mt-2">Real-time Data</h1>
             <h2>{{ data['key'] }}</h2>
             <div class="row justify-content-center mt-4">
-                <div id="data-container" class="col-md-12 table-responsive">
-                    <!-- Data will be loaded here -->
-                </div>
+                <div id="data-container" class="col-md-12 table-responsive"></div>
             </div>
             <div class="row justify-content-center mt-4">
                 <div id="chart-container">
@@ -154,54 +180,47 @@
 </div>
 <script>
     const navLinks = document.querySelectorAll('.nav-link');
-    const dataContainer = document.getElementById('data-container'); // Corrected element ID
+    const dataContainer = document.getElementById('data-container');
 
     navLinks.forEach(link => {
         link.addEventListener('click', async function (event) {
-            event.preventDefault(); // Prevent default link behavior
+            event.preventDefault();
 
-            // Remove 'active' class from all navigation links
             navLinks.forEach(link => link.classList.remove('active'));
 
-            const url = this.href; // Get the URL from the clicked link
-            const response = await fetch(url); // Fetch content from the URL
-            const content = await response.text(); // Extract the content as text
+            const url = this.href;
+            const response = await fetch(url);
+            const content = await response.text();
 
-            dataContainer.innerHTML = content; // Update the content container
-            this.classList.add('active'); // Add active class to clicked link
+            dataContainer.innerHTML = content;
+            this.classList.add('active');
         });
     });
 </script>
 
 <script>
 
-    function createTable(title, data, currentPage = 1, itemsPerPage = 20) {
+    function createTable(title, data, maxitems, currentPage = 1, itemsPerPage = 20) {
         const columns = Object.keys(data[0] || {});
         let tableBodyContent = '';
-
-        // Calculate the start and end index based on pagination
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = Math.min(startIndex + itemsPerPage, data.length);
 
         if (Array.isArray(data) && data.length > 0) {
-            // Render table rows for the current page
             tableBodyContent = data.slice(startIndex, endIndex).map(row => '<tr>' + columns.map(column => '<td>' + row[column] + '</td>').join('') + '</tr>').join('');
         } else {
-            // If data is not an array or is empty, display "No data available" in each cell
             tableBodyContent = '<tr><td colspan="' + columns.length + '">No data available</td></tr>';
         }
 
-        // Generate pagination buttons
-        const totalPages = Math.ceil(data.length / itemsPerPage);
-        const visiblePages = 5; // Adjust the number of visible pagination buttons
+        const totalPages = Math.ceil(maxitems / itemsPerPage);
+        const visiblePages = 5;
         const startPage = Math.max(1, currentPage - Math.floor(visiblePages / 2));
         const endPage = Math.min(totalPages, startPage + visiblePages - 1);
         const paginationButtons = Array.from({length: endPage - startPage + 1}, (_, i) => {
             const pageNumber = startPage + i;
             const activeClass = pageNumber === currentPage ? 'active' : '';
-            return '<li class="page-item ' + activeClass + '"><a class="page-link" href="#" onclick="paginate(' + pageNumber + ')">' + pageNumber + '</a></li>';
+            return '<li class="page-item ' + activeClass + '"><a class="page-link" href="#" onclick="paginate(\'' + title + '\', ' + pageNumber + ')" data-title="' + title + '" data-page="' + pageNumber + '">' + pageNumber + '</a></li>';
         }).join('');
-
         const tableContent =
             '<div class="card">' +
             '<div class="card-header">' + title + '</div>' +
@@ -219,40 +238,39 @@
             paginationButtons +
             '</ul>' +
             '</nav>';
-
         return tableContent;
     }
 
-
-    function createChart(data) {
+    function createChartProtocol(data) {
         var ctx = document.getElementById('chart').getContext('2d');
         if (window.myChart instanceof Chart) {
             window.myChart.destroy();
         }
-
+        const labels = data.map(entry => entry.protocol);
+        const counts = data.map(entry => entry.count);
         window.myChart = new Chart(ctx, {
-            type: 'line',
+            type: 'bar',
             data: {
-                labels: [new Date()],
+                labels: labels,
                 datasets: [{
-                    label: 'Bytes Sent',
-                    data: [data['bytes_sent']], // Assuming data is an object with 'bytes_sent' property
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    tension: 0.1
-                }, {
-                    label: 'Bytes Received',
-                    data: [data['bytes_received']], // Assuming data is an object with 'bytes_received' property
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    tension: 0.1
+                    label: 'Count',
+                    data: counts,
+                    backgroundColor: [
+                        'rgba(153, 102, 255, 0.5)', // Purple
+                        'rgba(255, 159, 64, 0.5)'   // Orange
+                    ],
+                    borderColor: [
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
                 }]
             },
             options: {
                 scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: 'second'
-                        }
+                    y: {
+                        beginAtZero: true,
+                        precision: 0
                     }
                 }
             }
@@ -266,16 +284,15 @@
         if (window.myChart instanceof Chart) {
             window.myChart.destroy();
         }
-
         window.myChart = new Chart(ctx, {
-            type: 'doughnut', // Use doughnut chart for displaying percentage
+            type: 'doughnut',
             data: {
                 labels: ['Normal Events', 'Potential Threats'],
                 datasets: [{
-                    data: [100 - threatPercentage, threatPercentage], // Calculate percentage for normal events and threats
+                    data: [100 - threatPercentage, threatPercentage],
                     backgroundColor: [
-                        'rgba(54, 162, 235, 0.5)', // Blue color for normal events
-                        'rgba(255, 99, 132, 0.5)' // Red color for threats
+                        'rgba(54, 162, 235, 0.5)',
+                        'rgba(255, 99, 132, 0.5)'
                     ],
                     borderColor: [
                         'rgba(54, 162, 235, 1)',
@@ -294,50 +311,56 @@
         return window.myChart;
     }
 
-    function paginate(pageNumber) {
-        // Update the data based on the selected page number
+    function paginate(title, pageNumber) {
         updateData("{{ data['key'] }}", pageNumber);
+        const paginationButtons = document.querySelectorAll('.pagination .page-item');
+        paginationButtons.forEach(button => button.classList.remove('active'));
+        const clickedButton = document.querySelector(`.pagination .page-item a[data-title="${title}"][data-page="${pageNumber}"]`);
+        clickedButton.parentElement.classList.add('active');
     }
 
-
-    function updateData(filterKey) {
-        $.getJSON("/get_filtered_data", {key: filterKey}, function (data) {
-            if (data) {
-                console.log(data);
-                var content = "";
-                if (filterKey === "Network Traffic") {
-                    content += createTable(filterKey, data[filterKey]['Traffic Data']);
-                    content += createChart(data[filterKey]['Traffic Metrics']);
-                } else if (filterKey === "Security Events") {
-                    // Create tables for normal events and potential threats
-                    content += createTable('Normal Events', data[filterKey]['Normal Events']);
-                    content += createTable('Potential Threats', data[filterKey]['Potential Threats']);
-
-                    // Calculate the percentage of threats from all events
-                    var totalEvents = data[filterKey]['Total Events'];
-                    var threatEvents = data[filterKey]['Potential Threats'].length;
-                    var threatPercentage = (threatEvents / totalEvents) * 100;
-
-                    // Create chart for threat percentage
-                    content += createChartSecurity(threatPercentage);
-                } else {
-                    content += createTable(filterKey, data[filterKey]);
+    function updateData(filterKey, pageNumber) {
+        $.when($.getJSON("/get_filtered_data", {key: filterKey, pageNumber: pageNumber}))
+            .done(function (data) {
+                if (data) {
+                    console.log(data);
+                    var content = "";
+                    if (filterKey === "Network Traffic") {
+                        content += createTable('Packet Details', data[filterKey]['Traffic Data']['Packet Details'], data[filterKey]['Traffic Data']['Total Packets']);
+                        content += createTable('Distinct Source IPs', data[filterKey]['Traffic Data']['Distinct Source IPs'], data[filterKey]['Traffic Data']['Total Distinct Source IPs']);
+                        content += createTable('Distinct Destination IPs', data[filterKey]['Traffic Data']['Distinct Destination IPs'], data[filterKey]['Traffic Data']['Total Distinct Destination IPs']);
+                        content += createTable('Distinct Protocols', data[filterKey]['Traffic Data']['Distinct Protocols']);
+                        //content += createTable('Traffic Metrics', data[filterKey]['Traffic Metrics'], (data[filterKey]['Traffic Metrics']).length);
+                        content += createChartProtocol(data[filterKey]['Traffic Data']['Distinct Protocols']);
+                    } else if (filterKey === "Security Events") {
+                        // Create tables for normal events and potential threats
+                        content += createTable('Potential Threats', data[filterKey]['Potential Threats'], data[filterKey]['Total Threats']);
+                        // Calculate the percentage of threats from all events
+                        var totalEvents = data[filterKey]['Total Events'];
+                        var threatEvents = data[filterKey]['Total Threats'];
+                        var threatPercentage = (threatEvents / totalEvents) * 100;
+                        // Create chart for threat percentage
+                        content += createChartSecurity(threatPercentage);
+                    } else {
+                        content += createTable(filterKey, data[filterKey]);
+                    }
+                    $('#data-container').html(content);
                 }
-                $('#data-container').html(content);
-            }
-        });
+            })
+            .fail(function () {
+                console.log("Error fetching data");
+            });
     }
 
-
-    // Document ready function
     $(document).ready(function () {
         var key = "{{ data['key'] }}";
         updateData(key);
         setInterval(function () {
             updateData(key);
-        }, 5000); // Update data every 5 seconds
+        }, 15000); // Update data every 15 seconds
     });
 
 </script>
 </body>
+
 </html>

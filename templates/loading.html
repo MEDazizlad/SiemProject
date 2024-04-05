@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+    <link rel="icon" type="static/x-icon" href="/static/logo.ico">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Include Bootstrap CSS -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            /* Light gray background */
+            font-family: Arial, sans-serif;
+            /* Use Arial font */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .loading-message {
+            font-size: 18px;
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            /* Light shadow */
+            background-color: #fff;
+            /* White background */
+        }
+    </style>
+    <script src="{{ url_for('reload_js') }}"></script> <!-- Include reload.js -->
+</head>
+
+<body>
+<div class="loading-message">
+    <p>Data is being collected...</p>
+    <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+</div>
+</body>
+
+</html>
