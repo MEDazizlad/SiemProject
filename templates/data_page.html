@@ -8,7 +8,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script
-            src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -75,13 +75,31 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 60vh;
+            height: 80vh;
+        }
+
+        .chart-wrapper {
+            flex: 1;
+            max-width: 600px;
+            margin: 0 20px;
+        }
+
+
+        canvas {
+            box-sizing: border-box;
+            display: block;
         }
 
         #chart {
-            max-width: 1000px;
-            height: 80%;
+            height: 400px;
+            width: 600px;
         }
+
+        #count-chart {
+            height: 200px;
+            width: 600px;
+        }
+
 
         table {
             border-collapse: collapse;
@@ -139,228 +157,280 @@
 </head>
 
 <body>
-<div class="container-fluid">
-    <div class="row">
-        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
-            <div class="sidebar-sticky">
-                <h6
+    <div class="container-fluid">
+        <div class="row">
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="sidebar-sticky">
+                    <h6
                         class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-                    Data Parts
-                </h6>
-                <ul class="nav flex-column mb-2">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/">Home</a>
-                    </li>
+                        Data Parts
+                    </h6>
+                    <ul class="nav flex-column mb-2">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/">Home</a>
+                        </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link" href="/network-traffic">Network Traffic</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/security-events">Security Events</a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
-        <main class="col-md-9 ml-sm-auto col-lg-10 px-md-4 main">
-            <h1 class="mt-2">Real-time Data</h1>
-            <h2>{{ data['key'] }}</h2>
-            <div class="row justify-content-center mt-4">
-                <div id="data-container" class="col-md-12 table-responsive"></div>
-            </div>
-            <div class="row justify-content-center mt-4">
-                <div id="chart-container">
-                    <canvas id="chart"></canvas>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/network-traffic">Network Traffic</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/security-events">Security Events</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            <main class="col-md-9 ml-sm-auto col-lg-10 px-md-4 main">
+                <h1 class="mt-2">Real-time Data</h1>
+                <h2>{{ data['key'] }}</h2>
+                <div class="row justify-content-center mt-4">
+                    <div id="data-container" class="col-md-12 table-responsive"></div>
+                </div>
+                <div class="row justify-content-center mt-4">
+                    <div id="chart-container">
+                        <div class="chart-wrapper">
+                            <canvas id="chart"></canvas>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="count-chart"></canvas>
+                        </div>
+                    </div>
                 </div>
 
-            </div>
-        </main>
+            </main>
 
 
+        </div>
     </div>
-</div>
-<script>
-    const navLinks = document.querySelectorAll('.nav-link');
-    const dataContainer = document.getElementById('data-container');
+    <script>
+        const navLinks = document.querySelectorAll('.nav-link');
+        const dataContainer = document.getElementById('data-container');
 
-    navLinks.forEach(link => {
-        link.addEventListener('click', async function (event) {
-            event.preventDefault();
+        navLinks.forEach(link => {
+            link.addEventListener('click', async function (event) {
+                event.preventDefault();
 
-            navLinks.forEach(link => link.classList.remove('active'));
+                navLinks.forEach(link => link.classList.remove('active'));
 
-            const url = this.href;
-            const response = await fetch(url);
-            const content = await response.text();
+                const url = this.href;
+                const response = await fetch(url);
+                const content = await response.text();
 
-            dataContainer.innerHTML = content;
-            this.classList.add('active');
-        });
-    });
-</script>
-
-<script>
-
-    function createTable(title, data, maxitems, currentPage = 1, itemsPerPage = 20) {
-        const columns = Object.keys(data[0] || {});
-        let tableBodyContent = '';
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = Math.min(startIndex + itemsPerPage, data.length);
-
-        if (Array.isArray(data) && data.length > 0) {
-            tableBodyContent = data.slice(startIndex, endIndex).map(row => '<tr>' + columns.map(column => '<td>' + row[column] + '</td>').join('') + '</tr>').join('');
-        } else {
-            tableBodyContent = '<tr><td colspan="' + columns.length + '">No data available</td></tr>';
-        }
-
-        const totalPages = Math.ceil(maxitems / itemsPerPage);
-        const visiblePages = 5;
-        const startPage = Math.max(1, currentPage - Math.floor(visiblePages / 2));
-        const endPage = Math.min(totalPages, startPage + visiblePages - 1);
-        const paginationButtons = Array.from({length: endPage - startPage + 1}, (_, i) => {
-            const pageNumber = startPage + i;
-            const activeClass = pageNumber === currentPage ? 'active' : '';
-            return '<li class="page-item ' + activeClass + '"><a class="page-link" href="#" onclick="paginate(\'' + title + '\', ' + pageNumber + ')" data-title="' + title + '" data-page="' + pageNumber + '">' + pageNumber + '</a></li>';
-        }).join('');
-        const tableContent =
-            '<div class="card">' +
-            '<div class="card-header">' + title + '</div>' +
-            '<div class="card-body">' +
-            '<table class="table">' +
-            '<thead>' +
-            '<tr>' + columns.map(column => '<th>' + column + '</th>').join('') + '</tr>' +
-            '</thead>' +
-            '<tbody>' + tableBodyContent + '</tbody>' +
-            '</table>' +
-            '</div>' +
-            '</div>' +
-            '<nav aria-label="Page navigation">' +
-            '<ul class="pagination">' +
-            paginationButtons +
-            '</ul>' +
-            '</nav>';
-        return tableContent;
-    }
-
-    function createChartProtocol(data) {
-        var ctx = document.getElementById('chart').getContext('2d');
-        if (window.myChart instanceof Chart) {
-            window.myChart.destroy();
-        }
-        const labels = data.map(entry => entry.protocol);
-        const counts = data.map(entry => entry.count);
-        window.myChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Count',
-                    data: counts,
-                    backgroundColor: [
-                        'rgba(153, 102, 255, 0.5)', // Purple
-                        'rgba(255, 159, 64, 0.5)'   // Orange
-                    ],
-                    borderColor: [
-                        'rgba(153, 102, 255, 1)',
-                        'rgba(255, 159, 64, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        precision: 0
-                    }
-                }
-            }
-        });
-
-        return window.myChart;
-    }
-
-    function createChartSecurity(threatPercentage) {
-        var ctx = document.getElementById('chart').getContext('2d');
-        if (window.myChart instanceof Chart) {
-            window.myChart.destroy();
-        }
-        window.myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Normal Events', 'Potential Threats'],
-                datasets: [{
-                    data: [100 - threatPercentage, threatPercentage],
-                    backgroundColor: [
-                        'rgba(54, 162, 235, 0.5)',
-                        'rgba(255, 99, 132, 0.5)'
-                    ],
-                    borderColor: [
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 99, 132, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                title: {
-                    display: true,
-                    text: 'Percentage of Threats in Security Events'
-                }
-            }
-        });
-        return window.myChart;
-    }
-
-    function paginate(title, pageNumber) {
-        updateData("{{ data['key'] }}", pageNumber);
-        const paginationButtons = document.querySelectorAll('.pagination .page-item');
-        paginationButtons.forEach(button => button.classList.remove('active'));
-        const clickedButton = document.querySelector(`.pagination .page-item a[data-title="${title}"][data-page="${pageNumber}"]`);
-        clickedButton.parentElement.classList.add('active');
-    }
-
-    function updateData(filterKey, pageNumber) {
-        $.when($.getJSON("/get_filtered_data", {key: filterKey, pageNumber: pageNumber}))
-            .done(function (data) {
-                if (data) {
-                    console.log(data);
-                    var content = "";
-                    if (filterKey === "Network Traffic") {
-                        content += createTable('Packet Details', data[filterKey]['Traffic Data']['Packet Details'], data[filterKey]['Traffic Data']['Total Packets']);
-                        content += createTable('Distinct Source IPs', data[filterKey]['Traffic Data']['Distinct Source IPs'], data[filterKey]['Traffic Data']['Total Distinct Source IPs']);
-                        content += createTable('Distinct Destination IPs', data[filterKey]['Traffic Data']['Distinct Destination IPs'], data[filterKey]['Traffic Data']['Total Distinct Destination IPs']);
-                        content += createTable('Distinct Protocols', data[filterKey]['Traffic Data']['Distinct Protocols']);
-                        //content += createTable('Traffic Metrics', data[filterKey]['Traffic Metrics'], (data[filterKey]['Traffic Metrics']).length);
-                        content += createChartProtocol(data[filterKey]['Traffic Data']['Distinct Protocols']);
-                    } else if (filterKey === "Security Events") {
-                        // Create tables for normal events and potential threats
-                        content += createTable('Potential Threats', data[filterKey]['Potential Threats'], data[filterKey]['Total Threats']);
-                        // Calculate the percentage of threats from all events
-                        var totalEvents = data[filterKey]['Total Events'];
-                        var threatEvents = data[filterKey]['Total Threats'];
-                        var threatPercentage = (threatEvents / totalEvents) * 100;
-                        // Create chart for threat percentage
-                        content += createChartSecurity(threatPercentage);
-                    } else {
-                        content += createTable(filterKey, data[filterKey]);
-                    }
-                    $('#data-container').html(content);
-                }
-            })
-            .fail(function () {
-                console.log("Error fetching data");
+                dataContainer.innerHTML = content;
+                this.classList.add('active');
             });
-    }
+        });
+    </script>
 
-    $(document).ready(function () {
-        var key = "{{ data['key'] }}";
-        updateData(key);
-        setInterval(function () {
+    <script>
+
+        function createTable(title, data, maxitems, currentPage = 1, itemsPerPage = 20) {
+            const columns = Object.keys(data[0] || {});
+            let tableBodyContent = '';
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, data.length);
+
+            if (Array.isArray(data) && data.length > 0) {
+                tableBodyContent = data.slice(startIndex, endIndex).map(row => '<tr>' + columns.map(column => '<td>' + row[column] + '</td>').join('') + '</tr>').join('');
+            } else {
+                tableBodyContent = '<tr><td colspan="' + columns.length + '">No data available</td></tr>';
+            }
+
+            const totalPages = Math.ceil(maxitems / itemsPerPage);
+            const visiblePages = 5;
+            const startPage = Math.max(1, currentPage - Math.floor(visiblePages / 2));
+            const endPage = Math.min(totalPages, startPage + visiblePages - 1);
+            const paginationButtons = Array.from({ length: endPage - startPage + 1 }, (_, i) => {
+                const pageNumber = startPage + i;
+                const activeClass = pageNumber === currentPage ? 'active' : '';
+                return '<li class="page-item ' + activeClass + '"><a class="page-link" href="#" onclick="paginate(\'' + title + '\', ' + pageNumber + ')" data-title="' + title + '" data-page="' + pageNumber + '">' + pageNumber + '</a></li>';
+            }).join('');
+            const tableContent =
+                '<div class="card">' +
+                '<div class="card-header">' + title + '</div>' +
+                '<div class="card-body">' +
+                '<table class="table">' +
+                '<thead>' +
+                '<tr>' + columns.map(column => '<th>' + column + '</th>').join('') + '</tr>' +
+                '</thead>' +
+                '<tbody>' + tableBodyContent + '</tbody>' +
+                '</table>' +
+                '</div>' +
+                '</div>' +
+                '<nav aria-label="Page navigation">' +
+                '<ul class="pagination">' +
+                paginationButtons +
+                '</ul>' +
+                '</nav>';
+            return tableContent;
+        }
+
+        function createChartProtocol(data) {
+            var ctx = document.getElementById('chart').getContext('2d');
+            if (window.myChart instanceof Chart) {
+                window.myChart.destroy();
+            }
+            const labels = data.map(entry => entry.protocol);
+            const counts = data.map(entry => entry.count);
+            window.myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Count',
+                        data: counts,
+                        backgroundColor: [
+                            'rgba(153, 102, 255, 0.5)', // Purple
+                            'rgba(255, 159, 64, 0.5)'   // Orange
+                        ],
+                        borderColor: [
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            precision: 0
+                        }
+                    }
+                }
+            });
+
+            return window.myChart;
+        }
+
+        function createChartThreats(threatsCount) {
+            var ctx = document.getElementById('count-chart').getContext('2d');
+            if (window.myCountChart instanceof Chart) {
+                window.myCountChart.destroy();
+            }
+
+            const labels = ['Potential Threats'];
+            const counts = [threatsCount];
+
+            window.myCountChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Threats Count',
+                        data: counts,
+                        backgroundColor: 'rgba(153, 102, 255, 0.5)',
+                        pointBackgroundColor: 'rgba(153, 102, 255, 0.5)',
+                        borderColor: 'rgba(153, 102, 255, 0.5)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            precision: 0
+                        }
+                    }
+                }
+            });
+
+            return window.myCountChart;
+        }
+
+
+        function createChartSecurity(threatPercentage) {
+            var ctx = document.getElementById('chart').getContext('2d');
+            if (window.myChart instanceof Chart) {
+                window.myChart.destroy();
+            }
+            window.myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Normal Events Percantage', 'Potential Threats Percantage'],
+                    datasets: [{
+                        data: [100 - threatPercentage, threatPercentage],
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.5)',
+                            'rgba(255, 99, 132, 0.5)'
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 99, 132, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    title: {
+                        display: true,
+                        text: 'Percentage of Threats in Security Events'
+                    }
+                }
+            });
+            return window.myChart;
+        }
+
+        function paginate(title, pageNumber) {
+            updateData("{{ data['key'] }}", pageNumber);
+            const paginationButtons = document.querySelectorAll('.pagination .page-item');
+            paginationButtons.forEach(button => button.classList.remove('active'));
+            const clickedButton = document.querySelector(`.pagination .page-item a[data-title="${title}"][data-page="${pageNumber}"]`);
+            clickedButton.parentElement.classList.add('active');
+        }
+
+        // JavaScript code to remove count-chart canvas
+        function removeCountChart() {
+            var countChartElement = document.getElementById('count-chart');
+            if (countChartElement) {
+                countChartElement.parentNode.remove();
+            }
+        }
+
+
+        function updateData(filterKey, pageNumber) {
+            $.when($.getJSON("/get_filtered_data", { key: filterKey, pageNumber: pageNumber }))
+                .done(function (data) {
+                    if (data) {
+                        console.log(data);
+                        var content = "";
+                        if (filterKey === "Network Traffic") {
+                            removeCountChart();
+                            content += createTable('Packet Details', data[filterKey]['Traffic Data']['Packet Details'], data[filterKey]['Traffic Data']['Total Packets']);
+                            content += createTable('Distinct Source IPs', data[filterKey]['Traffic Data']['Distinct Source IPs'], data[filterKey]['Traffic Data']['Total Distinct Source IPs']);
+                            content += createTable('Distinct Destination IPs', data[filterKey]['Traffic Data']['Distinct Destination IPs'], data[filterKey]['Traffic Data']['Total Distinct Destination IPs']);
+                            content += createTable('Distinct Protocols', data[filterKey]['Traffic Data']['Distinct Protocols']);
+                            //content += createTable('Traffic Metrics', data[filterKey]['Traffic Metrics'], (data[filterKey]['Traffic Metrics']).length);
+                            content += createChartProtocol(data[filterKey]['Traffic Data']['Distinct Protocols']);
+                        } else if (filterKey === "Security Events") {
+                            // Create tables for normal events and potential threats
+                            content += createTable('Potential Threats', data[filterKey]['Potential Threats'], data[filterKey]['Total Threats']);
+                            content += createChartThreats(data[filterKey]['Total Threats']);
+                            // Calculate the percentage of threats from all events
+                            var totalEvents = data[filterKey]['Total Events'];
+                            var threatEvents = data[filterKey]['Total Threats'];
+                            var threatPercentage = (threatEvents / totalEvents) * 100;
+                            // Create chart for threat percentage
+                            content += createChartSecurity(threatPercentage);
+                        } else {
+                            content += createTable(filterKey, data[filterKey]);
+                        }
+                        $('#data-container').html(content);
+                    }
+                })
+                .fail(function () {
+                    console.log("Error fetching data");
+                });
+        }
+
+        $(document).ready(function () {
+            var key = "{{ data['key'] }}";
             updateData(key);
-        }, 15000); // Update data every 15 seconds
-    });
+            setInterval(function () {
+                updateData(key);
+            }, 15000); // Update data every 15 seconds
+        });
 
-</script>
+    </script>
 </body>
 
 </html>
